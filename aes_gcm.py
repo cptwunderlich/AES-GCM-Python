@@ -26,6 +26,7 @@ from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 
+
 # GF(2^128) defined by 1 + a + a^2 + a^7 + a^128
 # Please note the MSB is x0 and LSB is x127
 def gf_2_128_mul(x, y):
@@ -54,23 +55,14 @@ class InvalidTagException(Exception):
 
 # Galois/Counter Mode with AES-128 and 96-bit IV
 class AES_GCM:
-    key_sizes = [16, 24, 32]
-
     def __init__(self, master_key):
         self.change_key(master_key)
 
     def change_key(self, master_key):
-        # Turn to hex string, len minus '0x' and divide bc. 2 letters per byte
-        keylen = (len(hex(master_key)) - 2) // 2
-        key_size = 0
-        for s in AES_GCM.key_sizes:
-            if keylen <= s:
-                key_size = s
+        if master_key >= (1 << 128):
+            raise InvalidInputException('Master key should be 128-bit')
 
-        if key_size == 0:
-            raise InvalidInputException('Master key should be 128, 192 or 256-bit')
-
-        self.__master_key = long_to_bytes(master_key, key_size)
+        self.__master_key = long_to_bytes(master_key, 16)
         self.__aes_ecb = AES.new(self.__master_key, AES.MODE_ECB)
         self.__auth_key = bytes_to_long(self.__aes_ecb.encrypt(b'\x00' * 16))
 
